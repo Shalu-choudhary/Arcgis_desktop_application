@@ -40,10 +40,10 @@ arcgis_map_flutter_web/
 
 >Run the following commands on terminal:
 
-```bash
+``bash
 flutter clean
 flutter pub get
-flutter run -d windows
+flutter run -d windows ``
 
 📸 Output Screenshots 
 > Here’s how the app looks while running on Windows desktop:
