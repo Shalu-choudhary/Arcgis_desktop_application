@@ -47,6 +47,7 @@ flutter run -d windows
 
 📸 Output Screenshots 
 > Here’s how the app looks while running on Windows desktop:
+
 🗺️ Full Map View
 ![Map View](assets/front_map.png)
 
