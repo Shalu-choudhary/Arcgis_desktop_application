@@ -47,12 +47,11 @@ flutter run -d windows
 
 📸 Output Screenshots 
 > Here’s how the app looks while running on Windows desktop:
+### 🗺️ Full Map View  
+<img src="assets/front_map.png" width="600"/>
 
-🗺️ Full Map View
-![Map View](assets/front_map.png)
-
-✏️ Distance between two points
-![Distance View](assets/distance.png)
+### 📏 Distance Between Two Points  
+<img src="assets/distance.png" width="600"/>
 
 🙋‍♀️ Author
 Shalu Choudhary
