@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ArcGIS Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.29/"></script>
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+
+  <script>
+
+  let view ; 
+
+  let userDroppedPoints = [];
+
+  function calculateHaversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const rLat1 = lat1 * Math.PI / 180;
+  const rLat2 = lat2 * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+    let GraphicModule;
+
+require(["esri/Map", "esri/views/MapView", "esri/Graphic", "esri/widgets/Search"], function (Map, MapView, Graphic, Search) {
+  GraphicModule = Graphic;
+      const map = new Map({
+        basemap: "streets-navigation-vector"
+      });
+
+   view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [77.2090, 28.6139],
+        zoom: 12
+      });
+
+      const polygon = {
+        type: "polygon",
+        rings: [
+          [77.20, 28.61],
+          [77.22, 28.61],
+          [77.22, 28.63],
+          [77.20, 28.63],
+          [77.20, 28.61]
+        ]
+      };
+
+      const fillSymbol = {
+        type: "simple-fill",
+        color: [255, 0, 0, 0.4],
+        outline: {
+          color: [255, 0, 0],
+          width: 2
+        }
+      };
+
+      const polygonGraphic = new Graphic({
+        geometry: polygon,
+        symbol: fillSymbol
+      });
+
+      view.graphics.add(polygonGraphic);
+
+      const searchWidget = new Search({ view: view });
+      view.ui.add(searchWidget, { position: "top-right" });
+
+    view.on("click", function (event) {
+  console.log("Clicked at:", event.mapPoint.longitude, event.mapPoint.latitude);
+
+   if (!dropMode || !view) return;
+
+  const point = {
+    latitude: event.mapPoint.latitude,
+    longitude: event.mapPoint.longitude
+  };
+
+  userDroppedPoints.push(point);
+
+  const pinGraphic = new Graphic({
+    geometry: {
+      type: "point",
+      latitude: point.latitude,
+      longitude: point.longitude
+    },
+    symbol: {
+      type: "simple-marker",
+      color: [0, 0, 255],
+      outline: { color: [255, 255, 255], width: 2 }
+    },
+    popupTemplate: {
+      title: "Dropped Pin",
+      content: `Lat: ${point.latitude.toFixed(5)}<br>Lon: ${point.longitude.toFixed(5)}`
+    }
+  });
+
+  view.graphics.add(pinGraphic);
+
+  }
+);
+    });
+
+
+ //Flutter-accessible zoom function
+    function zoomIn() {
+      if (view) {
+        view.zoom += 1;
+      } else {
+        console.log("View not ready yet.");
+      }
+    }
+    function zoomOut() {
+    if (view && view.zoom > 0) {
+      view.zoom -= 1;
+      }
+    }
+
+    //PIN BUTTON
+    let dropMode = false; // Controlled by Flutter
+  function enablePinDrop() {
+  dropMode = !dropMode;
+
+  if (dropMode) {
+    alert("📍 Pin drop mode activated.\nClick the map to place pins.\nTap the button again to exit.");
+  } else {
+    alert("✅ Pin drop mode deactivated.");
+  }
+
+  console.log("Pin drop mode:", dropMode);
+}
+
+    //CLEAR PINS
+    function clearPins() {
+    if (view) {
+      view.graphics.removeAll();
+      console.log("All pins cleared.");
+    }
+    userDroppedPoints = [];
+  }
+
+  //CALCULATE DISTANCE BETWEEN POINTS 
+ function calculateAndDrawDistances() {
+  if (!view || userDroppedPoints.length < 2) {
+    alert("Please drop at least two pins first.");
+    return;
+  }
+
+  for (let i = 0; i < userDroppedPoints.length - 1; i++) {
+    for (let j = i + 1; j < userDroppedPoints.length; j++) {
+      const p1 = userDroppedPoints[i];
+      const p2 = userDroppedPoints[j];
+
+      const line = {
+        type: "polyline",
+        paths: [[p1.longitude, p1.latitude], [p2.longitude, p2.latitude]]
+      };
+
+      const distance = calculateHaversine(
+        p1.latitude, p1.longitude,
+        p2.latitude, p2.longitude
+      );
+
+      const lineGraphic = new GraphicModule({
+        geometry: line,
+        symbol: {
+          type: "simple-line",
+          color: [255, 165, 0], // orange
+          width: 2
+        },
+        popupTemplate: {
+          title: `Distance`,
+          content: `${distance.toFixed(2)} km`
+        }
+      });
+
+      view.graphics.add(lineGraphic);
+    }
+  }
+}
+ 
+  
+
+  </script>
+</head>
+<body>
+  <div id="viewDiv"></div>
+</body>
+</html>
