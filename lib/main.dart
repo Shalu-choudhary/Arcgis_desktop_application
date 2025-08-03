@@ -28,6 +28,8 @@ class _MyAppState extends State<MyApp> {
                 webViewController = controller;
               },
             ),
+
+            // Zoom In
             Positioned(
               bottom: 20,
               right: 20,
@@ -40,6 +42,8 @@ class _MyAppState extends State<MyApp> {
                 child: const Icon(Icons.zoom_in, size: 28),
               ),
             ),
+
+            // Zoom Out
             Positioned(
               bottom: 90,
               right: 20,
@@ -52,6 +56,8 @@ class _MyAppState extends State<MyApp> {
                 child: const Icon(Icons.zoom_out, size: 28),
               ),
             ),
+
+            // Pin Drop
             Positioned(
               bottom: 160,
               right: 20,
@@ -59,12 +65,13 @@ class _MyAppState extends State<MyApp> {
                 heroTag: "dropPinBtn",
                 backgroundColor: const Color.fromARGB(255, 151, 244, 154),
                 onPressed: () {
-                  webViewController.evaluateJavascript(
-                      source: "enablePinDrop();");
+                  webViewController.evaluateJavascript(source: "enablePinDrop();");
                 },
                 child: const Icon(Icons.pin_drop),
               ),
             ),
+
+            // Clear Pins
             Positioned(
               bottom: 230,
               right: 20,
@@ -77,19 +84,21 @@ class _MyAppState extends State<MyApp> {
                 child: const Icon(Icons.delete),
               ),
             ),
+
+            // Distance Toggle Button (FIXED)
             Positioned(
               bottom: 300,
               right: 20,
               child: FloatingActionButton(
-                heroTag: "calcAllDistancesBtn",
+                heroTag: "distanceToggleBtn",
                 backgroundColor: const Color.fromARGB(255, 248, 168, 203),
                 onPressed: () {
-                  webViewController.evaluateJavascript(
-                      source: "calculateAndDrawDistances();");
+                  webViewController.evaluateJavascript(source: "toggleDistanceMode()");
+
                 },
-                child: const Icon(Icons.timeline),
+                child: const Icon(Icons.straighten), // distance icon
               ),
-            )
+            ),
           ],
         ),
       ),

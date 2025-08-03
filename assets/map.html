@@ -15,185 +15,108 @@
     }
   </style>
 
-
   <script>
-
-  let view ; 
-
-  let userDroppedPoints = [];
-
-  function calculateHaversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const rLat1 = lat1 * Math.PI / 180;
-  const rLat2 = lat2 * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
+    let view;
+    let userDroppedPoints = [];
+    let dropMode = false;
+    let distanceMode = false; // NEW distance toggle
     let GraphicModule;
 
-require(["esri/Map", "esri/views/MapView", "esri/Graphic", "esri/widgets/Search"], function (Map, MapView, Graphic, Search) {
-  GraphicModule = Graphic;
-      const map = new Map({
-        basemap: "streets-navigation-vector"
-      });
+    function calculateHaversine(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const rLat1 = lat1 * Math.PI / 180;
+      const rLat2 = lat2 * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
 
-   view = new MapView({
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/widgets/Search"
+    ], function (Map, MapView, Graphic, Search) {
+      GraphicModule = Graphic;
+
+      const map = new Map({ basemap: "streets-navigation-vector" });
+      view = new MapView({
         container: "viewDiv",
         map: map,
         center: [77.2090, 28.6139],
         zoom: 12
       });
 
-      const polygon = {
-        type: "polygon",
-        rings: [
-          [77.20, 28.61],
-          [77.22, 28.61],
-          [77.22, 28.63],
-          [77.20, 28.63],
-          [77.20, 28.61]
-        ]
-      };
-
-      const fillSymbol = {
-        type: "simple-fill",
-        color: [255, 0, 0, 0.4],
-        outline: {
-          color: [255, 0, 0],
-          width: 2
-        }
-      };
-
-      const polygonGraphic = new Graphic({
-        geometry: polygon,
-        symbol: fillSymbol
-      });
-
-      view.graphics.add(polygonGraphic);
-
       const searchWidget = new Search({ view: view });
-      view.ui.add(searchWidget, { position: "top-right" });
+      view.ui.add(searchWidget, "top-right");
 
-    view.on("click", function (event) {
-  console.log("Clicked at:", event.mapPoint.longitude, event.mapPoint.latitude);
+      view.on("click", function (event) {
+        if (!dropMode || !view) return;
 
-   if (!dropMode || !view) return;
+        const point = {
+          latitude: event.mapPoint.latitude,
+          longitude: event.mapPoint.longitude
+        };
 
-  const point = {
-    latitude: event.mapPoint.latitude,
-    longitude: event.mapPoint.longitude
-  };
+        userDroppedPoints.push(point);
 
-  userDroppedPoints.push(point);
+        // Draw pin
+        const pinGraphic = new Graphic({
+          geometry: { type: "point", latitude: point.latitude, longitude: point.longitude },
+          symbol: { type: "simple-marker", color: [0, 0, 255], outline: { color: [255, 255, 255], width: 2 } }
+        });
+        view.graphics.add(pinGraphic);
 
-  const pinGraphic = new Graphic({
-    geometry: {
-      type: "point",
-      latitude: point.latitude,
-      longitude: point.longitude
-    },
-    symbol: {
-      type: "simple-marker",
-      color: [0, 0, 255],
-      outline: { color: [255, 255, 255], width: 2 }
-    },
-    popupTemplate: {
-      title: "Dropped Pin",
-      content: `Lat: ${point.latitude.toFixed(5)}<br>Lon: ${point.longitude.toFixed(5)}`
-    }
-  });
+        // Draw distance only if distance mode is enabled and there is a previous point
+        if (distanceMode && userDroppedPoints.length > 1) {
+          const p1 = userDroppedPoints[userDroppedPoints.length - 2];
+          const p2 = userDroppedPoints[userDroppedPoints.length - 1];
 
-  view.graphics.add(pinGraphic);
+          const line = { type: "polyline", paths: [[p1.longitude, p1.latitude], [p2.longitude, p2.latitude]] };
+          const distance = calculateHaversine(p1.latitude, p1.longitude, p2.latitude, p2.longitude);
 
-  }
-);
+          const lineGraphic = new GraphicModule({
+            geometry: line,
+            symbol: { type: "simple-line", color: [255, 165, 0], width: 2 }
+          });
+          view.graphics.add(lineGraphic);
+
+          // Add distance label at midpoint
+          const midLat = (p1.latitude + p2.latitude) / 2;
+          const midLon = (p1.longitude + p2.longitude) / 2;
+          const textGraphic = new GraphicModule({
+            geometry: { type: "point", latitude: midLat, longitude: midLon },
+            symbol: { type: "text", text: `${distance.toFixed(2)} km`, color: "black", haloColor: "white", haloSize: 2, font: { size: 12, family: "sans-serif" } }
+          });
+          view.graphics.add(textGraphic);
+        }
+      });
     });
 
+    // Zoom functions
+    function zoomIn() { if (view) view.zoom += 1; }
+    function zoomOut() { if (view && view.zoom > 0) view.zoom -= 1; }
 
- //Flutter-accessible zoom function
-    function zoomIn() {
-      if (view) {
-        view.zoom += 1;
-      } else {
-        console.log("View not ready yet.");
-      }
-    }
-    function zoomOut() {
-    if (view && view.zoom > 0) {
-      view.zoom -= 1;
-      }
+    // Toggle pin mode
+    function enablePinDrop() {
+      dropMode = !dropMode;
+      alert(dropMode ? "📍 Pin drop mode activated." : "✅ Pin drop mode deactivated.");
     }
 
-    //PIN BUTTON
-    let dropMode = false; // Controlled by Flutter
-  function enablePinDrop() {
-  dropMode = !dropMode;
+    // Toggle distance mode
+    function toggleDistanceMode() {
+      distanceMode = !distanceMode;
+      alert(distanceMode ? "📏 Distance mode activated." : "❌ Distance mode deactivated.");
+    }
 
-  if (dropMode) {
-    alert("📍 Pin drop mode activated.\nClick the map to place pins.\nTap the button again to exit.");
-  } else {
-    alert("✅ Pin drop mode deactivated.");
-  }
-
-  console.log("Pin drop mode:", dropMode);
-}
-
-    //CLEAR PINS
+    // Clear pins
     function clearPins() {
-    if (view) {
-      view.graphics.removeAll();
-      console.log("All pins cleared.");
+      if (view) view.graphics.removeAll();
+      userDroppedPoints = [];
     }
-    userDroppedPoints = [];
-  }
-
-  //CALCULATE DISTANCE BETWEEN POINTS 
- function calculateAndDrawDistances() {
-  if (!view || userDroppedPoints.length < 2) {
-    alert("Please drop at least two pins first.");
-    return;
-  }
-
-  for (let i = 0; i < userDroppedPoints.length - 1; i++) {
-    for (let j = i + 1; j < userDroppedPoints.length; j++) {
-      const p1 = userDroppedPoints[i];
-      const p2 = userDroppedPoints[j];
-
-      const line = {
-        type: "polyline",
-        paths: [[p1.longitude, p1.latitude], [p2.longitude, p2.latitude]]
-      };
-
-      const distance = calculateHaversine(
-        p1.latitude, p1.longitude,
-        p2.latitude, p2.longitude
-      );
-
-      const lineGraphic = new GraphicModule({
-        geometry: line,
-        symbol: {
-          type: "simple-line",
-          color: [255, 165, 0], // orange
-          width: 2
-        },
-        popupTemplate: {
-          title: `Distance`,
-          content: `${distance.toFixed(2)} km`
-        }
-      });
-
-      view.graphics.add(lineGraphic);
-    }
-  }
-}
- 
-  
-
   </script>
 </head>
 <body>
